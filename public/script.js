@@ -44,9 +44,11 @@ fetch('/columns')
 document.getElementById('taskForm').addEventListener('submit', function(e) {
   e.preventDefault();
   const taskInput = document.getElementById('taskInput');
+  const descriptionInput = document.getElementById('descriptionInput');
   const newTask = {
     id: Date.now(), // Unique ID for the task
     content: taskInput.value,
+    description: descriptionInput.value,
     column: 'todo' // Default column for new tasks
   };
   // Update the tasks on the server
@@ -61,6 +63,7 @@ document.getElementById('taskForm').addEventListener('submit', function(e) {
       // Add task to the UI
       addTaskToColumn(newTask);
       taskInput.value = ''; // Clear the input
+      descriptionInput.value = ''; // Clear the description input
     } else {
       console.error('Error adding task:', response.statusText);
     }
@@ -75,15 +78,35 @@ function addTaskToColumn(task) {
   taskDiv.classList.add('task');
   taskDiv.draggable = true;
   taskDiv.innerHTML = `
-    ${task.content}
-    <button class="delete-task" data-id="${task.id}">Delete</button>
+    <div class="task-content">${task.content}</div>
+    <div class="task-description" contenteditable="true" data-id="${task.id}">${task.description || ''}</div>
+    <button class="delete-task" data-id="${task.id}">×</button>
   `;
   column.appendChild(taskDiv);
+  
   // Attach drag-and-drop events
   taskDiv.addEventListener('dragstart', dragStart);
   taskDiv.addEventListener('dragend', dragEnd);
+  
   // Attach delete button event
   taskDiv.querySelector('.delete-task').addEventListener('click', deleteTask);
+  
+  // Attach description edit events
+  const descriptionDiv = taskDiv.querySelector('.task-description');
+  descriptionDiv.addEventListener('blur', updateTaskDescription);
+  descriptionDiv.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      descriptionDiv.blur();
+    }
+  });
+  
+  // Prevent dragging when editing description
+  descriptionDiv.addEventListener('mousedown', function(e) {
+    if (descriptionDiv.getAttribute('contenteditable') === 'true') {
+      e.stopPropagation();
+    }
+  });
 }
 
 // Function to delete task
@@ -104,6 +127,11 @@ function deleteTask(e) {
 
 // Drag and drop functions
 function dragStart(e) {
+  // Don't start dragging if user is editing description
+  if (e.target.closest('.task-description[contenteditable="true"]')) {
+    e.preventDefault();
+    return;
+  }
   e.dataTransfer.setData('text/plain', e.target.id);
 }
 
@@ -143,6 +171,25 @@ function updateTaskColumn(taskId, newColumn) {
   }).then(response => {
     if (!response.ok) {
       console.error('Error updating task column:', response.statusText);
+    }
+  });
+}
+
+// Function to update task description
+function updateTaskDescription(e) {
+  const taskId = e.target.getAttribute('data-id');
+  const newDescription = e.target.textContent.trim();
+  
+  // Update the task's description on the server
+  fetch(`/tasks/${taskId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ description: newDescription })
+  }).then(response => {
+    if (!response.ok) {
+      console.error('Error updating task description:', response.statusText);
     }
   });
 }

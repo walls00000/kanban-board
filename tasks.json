@@ -1,1 +1,128 @@
-[]
+[
+  {
+    "id": 1752070858337,
+    "content": "SMPLB-846: Use scheduled order for upcoming price change",
+    "description": "open sub-task to define test cases\n",
+    "column": "todo"
+  },
+  {
+    "id": 1752070939914,
+    "content": "Get Coupa Access",
+    "description": "",
+    "column": "done"
+  },
+  {
+    "id": 1752070960840,
+    "content": "Update Culture-Amp Goals",
+    "description": "",
+    "column": "done"
+  },
+  {
+    "id": 1752070978413,
+    "content": "VITEST Evaluation",
+    "description": "",
+    "column": "todo"
+  },
+  {
+    "id": 1752071002422,
+    "content": "Eisqa-event-service: use dx-test",
+    "description": "",
+    "column": "todo"
+  },
+  {
+    "id": 1752071044988,
+    "content": "EISQA-583 spike | merge coverage reports",
+    "description": "https://github.com/simplisafe/eis-orders-frontend/actions/runs/16121708559",
+    "column": "todo"
+  },
+  {
+    "id": 1752071089369,
+    "content": "PACT demo code",
+    "description": "Prepare Demo Documentation:  rapidly ensure that integration between services is not broken",
+    "column": "todo"
+  },
+  {
+    "id": 1752071111127,
+    "content": "PACT",
+    "description": "Speak to @Dan Brook about PACT Testing for CRM Transition",
+    "column": "todo"
+  },
+  {
+    "id": 1752071168453,
+    "content": "PACT setup meeting",
+    "description": "Setup meeting about PACT for CRM Transition Testing with @Courtney Meehan @Katie Fandozzi @David Levine @jim.mckenzie @matt",
+    "column": "todo"
+  },
+  {
+    "id": 1752071193306,
+    "content": "PACT demo code",
+    "description": "Implement pact from start to finish in POC project ",
+    "column": "todo"
+  },
+  {
+    "id": 1752071237239,
+    "content": "SMPLB-461: break down SMB ticket in billing",
+    "description": "",
+    "column": "todo"
+  },
+  {
+    "id": 1752071299889,
+    "content": "followup on simplisafe service fee refund for personal system",
+    "description": "",
+    "column": "todo"
+  },
+  {
+    "id": 1752071328814,
+    "content": "documentation for getting started with eisqa-repos",
+    "description": "how to bootstrap repo\ndebugging\nrun books",
+    "column": "todo"
+  },
+  {
+    "id": 1752071363013,
+    "content": "mocking: implement createmock in eisqa-lib or eisqa-event-service",
+    "description": "https://medium.com/@ledevnovice/simplify-your-unit-tests-with-jest-using-createmock-59300a063b5b",
+    "column": "todo"
+  },
+  {
+    "id": 1752071410377,
+    "content": "Windsurf Evaluation",
+    "description": "",
+    "column": "todo"
+  },
+  {
+    "id": 1752071452571,
+    "content": "investigate jaeger tracing for e2e tests",
+    "description": "",
+    "column": "todo"
+  },
+  {
+    "id": 1752071480111,
+    "content": "EISQA-581 bootstrap simplisafe/playwrite repo & lib",
+    "description": "",
+    "column": "inprogress"
+  },
+  {
+    "id": 1752071522538,
+    "content": "eis-orders-frontend PR",
+    "description": "",
+    "column": "done"
+  },
+  {
+    "id": 1752071545389,
+    "content": "Cursor Evaluation",
+    "description": "",
+    "column": "done"
+  },
+  {
+    "id": 1752071566049,
+    "content": "PACT",
+    "description": "talk with Harrell and Tim George & Matt Tebaldi and Dave ",
+    "column": "done"
+  },
+  {
+    "id": 1752071583457,
+    "content": "PACT",
+    "description": "Speak to  @joe.giuliano about PACT Testing for CRM Transition ",
+    "column": "done"
+  }
+]

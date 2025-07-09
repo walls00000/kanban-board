@@ -46,7 +46,7 @@ app.delete('/tasks/:id', (req, res) => {
 
 app.patch('/tasks/:id', (req, res) => {
   const taskId = parseInt(req.params.id);
-  const newColumn = req.body.column;
+  const updates = req.body; // This can contain column, description, or other fields
   
   // Read existing tasks
   const tasks = JSON.parse(fs.readFileSync('tasks.json', 'utf8'));
@@ -54,7 +54,16 @@ app.patch('/tasks/:id', (req, res) => {
   // Find and update the task
   const task = tasks.find(task => task.id === taskId);
   if (task) {
-    task.column = newColumn;
+    // Update any provided fields
+    if (updates.column !== undefined) {
+      task.column = updates.column;
+    }
+    if (updates.description !== undefined) {
+      task.description = updates.description;
+    }
+    if (updates.content !== undefined) {
+      task.content = updates.content;
+    }
     
     // Save updated tasks to tasks.json
     fs.writeFileSync('tasks.json', JSON.stringify(tasks, null, 2));

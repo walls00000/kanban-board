@@ -9,7 +9,10 @@
 <body>
   <h1>sctech kanban</h1>
   <form id="taskForm">
-    <input type="text" id="taskInput" placeholder="Enter a task..." required>
+    <div class="form-group">
+      <input type="text" id="taskInput" placeholder="Enter a task..." required>
+      <textarea id="descriptionInput" placeholder="Enter description (optional)..." rows="2"></textarea>
+    </div>
     <button type="submit">Add Task</button>
   </form>
   <div class="board"></div>

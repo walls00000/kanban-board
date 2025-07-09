@@ -45,21 +45,55 @@ h1 {
     border: 1px solid #bdc3c7;
     border-radius: 6px;
     transition: all 0.3s ease;
+    position: relative;
 }
 
-.task:hover {
-    background: #e0e6e8;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.task-content {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #2c3e50;
+}
+
+.task-description {
+    font-size: 0.9em;
+    color: #7f8c8d;
+    line-height: 1.4;
+    margin-bottom: 10px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.task-description:empty::before {
+    content: "Click to add description...";
+    color: #bdc3c7;
+    font-style: italic;
+}
+
+.task-description[contenteditable="true"] {
+    border: 1px dashed #3498db;
+    padding: 5px;
+    border-radius: 3px;
+    background: #fff;
+    outline: none;
+}
+
+.task-description[contenteditable="true"]:empty::before {
+    content: "Enter description...";
+    color: #bdc3c7;
+    font-style: italic;
 }
 
 .delete-task {
-    float: right;
+    position: absolute;
+    top: 8px;
+    right: 8px;
     background: #e74c3c;
     color: white;
     border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
+    padding: 4px 8px;
+    border-radius: 3px;
     cursor: pointer;
+    font-size: 12px;
     transition: background 0.3s ease;
 }
 
@@ -70,15 +104,29 @@ h1 {
 #taskForm {
     display: flex;
     justify-content: center;
+    align-items: flex-start;
     margin-bottom: 20px;
+    gap: 10px;
 }
 
-#taskInput {
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#taskInput, #descriptionInput {
     padding: 10px;
     width: 300px;
     border: 1px solid #bdc3c7;
-    border-radius: 4px 0 0 4px;
+    border-radius: 4px;
     font-size: 16px;
+    font-family: inherit;
+}
+
+#descriptionInput {
+    resize: vertical;
+    min-height: 60px;
 }
 
 #taskForm button {
@@ -86,10 +134,11 @@ h1 {
     background: #2ecc71;
     color: white;
     border: none;
-    border-radius: 0 4px 4px 0;
+    border-radius: 4px;
     cursor: pointer;
     font-size: 16px;
     transition: background 0.3s ease;
+    height: fit-content;
 }
 
 #taskForm button:hover {
