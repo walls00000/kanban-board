@@ -36,7 +36,19 @@ A lightweight, self-hosted Kanban board built with plain HTML, CSS, and JavaScri
 
 3. Run the server:
    ```bash
-   node server.js
+   echo "[]" > tasks.json ; node server.js
+   ```
+   or
+   ```
+   npm run start:fresh
+   ```
+   Once a `task.json` is established, the kanban service can be started with 
+   ```
+   node server.js 
+   ```
+   or
+   ```
+   npm run start
    ```
 
 4. Access the board: Open your browser and go to:
