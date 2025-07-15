@@ -2,6 +2,7 @@
 
 **Based on [sctech-tr/kanban](https://github.com/sctech-tr/kanban)** - Enhanced with editable descriptions and CLI tools.
 
+
 A lightweight, self-hosted Kanban board built with plain HTML, CSS, and JavaScript, with a minimal backend using Node.js and Express for task storage. Enhanced with editable task descriptions and CLI tools for task management.
 
 ## Features
