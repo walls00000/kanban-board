@@ -1,7 +1,7 @@
 {
-    "name": "sctech-kanban",
+    "name": "kanban-board",
     "version": "1.0.0",
-    "description": "A simple self-hosted Kanban board application with task management features.",
+    "description": "A simple self-hosted Kanban board application with task management features and CLI tools.",
     "main": "server.js",
     "scripts": {
         "start": "node server.js",
@@ -13,9 +13,10 @@
         "kanban",
         "self-hosted",
         "task management",
-        "nodejs"
+        "nodejs",
+        "cli"
     ],
-    "author": "sctech-tr",
+    "author": "schtech-tr + walls00000",
     "license": "MIT",
     "dependencies": {
         "express": "^4.18.2"

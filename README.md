@@ -1,11 +1,15 @@
-# sctech kanban
+# Kanban Board
 
-A lightweight, self-hosted Kanban board built with plain HTML, CSS, and JavaScript, with a minimal backend using Node.js and Express for task storage. No fancy graphics or unnecessary features — just a simple board to manage your tasks.
+**Based on [sctech-tr/kanban](https://github.com/sctech-tr/kanban)** - Enhanced with editable descriptions and CLI tools.
+
+A lightweight, self-hosted Kanban board built with plain HTML, CSS, and JavaScript, with a minimal backend using Node.js and Express for task storage. Enhanced with editable task descriptions and CLI tools for task management.
 
 ## Features
 
 - Drag-and-drop tasks between columns: To Do, In Progress, Done
+- Editable task descriptions: Click on any task description to edit it inline
 - Task Deletion: Each task has a delete button that allows you to remove it from the board and server
+- CLI tool for viewing tasks from the command line
 - No database needed: task data is stored in a simple JSON file
 - Lightweight and easy to set up
 
@@ -20,8 +24,8 @@ A lightweight, self-hosted Kanban board built with plain HTML, CSS, and JavaScri
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/sctech-tr/kanban.git
-   cd kanban
+   git clone https://github.com/william-wallace/kanban-board.git
+   cd kanban-board
    ```
 
 2. Install dependencies:
