@@ -48,7 +48,47 @@ A lightweight, self-hosted Kanban board built with plain HTML, CSS, and JavaScri
 
 ## Adding Tasks
 
-Use the task addition form to add tasks. Alternatively, update the `tasks.json` file manually to pre-load tasks.
+Use the task addition form to add tasks. Each task can have a title and an optional description. The description field is editable directly on the board - simply click on the description area of any task to edit it.
+
+Alternatively, update the `tasks.json` file manually to pre-load tasks.
+
+## Viewing Tasks from Command Line
+
+The project includes a CLI tool to view tasks from the command line. This is useful for quickly checking task status or integrating with other tools.
+
+### Usage
+
+```bash
+npm run view [column] [json-file]
+```
+
+**Parameters:**
+- `column` (optional): The column to filter by. Valid values are `todo`, `inprogress`, or `done`. Defaults to `done`.
+- `json-file` (optional): Path to the JSON file to read. Defaults to `./tasks.json`.
+
+### Examples
+
+View all completed tasks (default):
+```bash
+npm run view
+```
+
+View tasks in progress:
+```bash
+npm run view inprogress
+```
+
+View todo tasks:
+```bash
+npm run view todo
+```
+
+View tasks from a specific file:
+```bash
+npm run view done ./my-tasks.json
+```
+
+The output shows only the content and description fields of matching tasks in JSON format, making it easy to parse or integrate with other tools.
 
 ## Customization
 
