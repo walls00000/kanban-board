@@ -130,3 +130,4 @@ dist
 .pnp.*
 
 tasks.json
+logs/*
