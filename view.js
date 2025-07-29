@@ -82,6 +82,14 @@ try {
     // Filter tasks by column
     const filteredTasks = data.filter(task => task.column === column);
     
+    // Sort tasks by order field for todo column, by id for others (backward compatible)
+    filteredTasks.sort((a, b) => {
+        if (column === 'todo') {
+            return (a.order || 0) - (b.order || 0);
+        }
+        return a.id - b.id;
+    });
+    
     // Extract only content and description fields
     const outputTasks = filteredTasks.map(task => ({
         content: task.content,

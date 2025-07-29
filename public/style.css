@@ -48,6 +48,16 @@ h1 {
     position: relative;
 }
 
+.task:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.task.dragging {
+    opacity: 0.5;
+    transform: rotate(2deg);
+}
+
 .task-content {
     font-weight: bold;
     margin-bottom: 8px;

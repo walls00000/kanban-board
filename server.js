@@ -46,7 +46,7 @@ app.delete('/tasks/:id', (req, res) => {
 
 app.patch('/tasks/:id', (req, res) => {
   const taskId = parseInt(req.params.id);
-  const updates = req.body; // This can contain column, description, or other fields
+  const updates = req.body; // This can contain column, description, order, or other fields
   
   // Read existing tasks
   const tasks = JSON.parse(fs.readFileSync('tasks.json', 'utf8'));
@@ -64,6 +64,13 @@ app.patch('/tasks/:id', (req, res) => {
     if (updates.content !== undefined) {
       task.content = updates.content;
     }
+    if (updates.order !== undefined) {
+      if (updates.order === null) {
+        delete task.order; // Remove order field entirely when null
+      } else {
+        task.order = updates.order;
+      }
+    }
     
     // Save updated tasks to tasks.json
     fs.writeFileSync('tasks.json', JSON.stringify(tasks, null, 2));
@@ -71,6 +78,30 @@ app.patch('/tasks/:id', (req, res) => {
   } else {
     res.status(404).send('Task not found');
   }
+});
+
+// Endpoint to reorder multiple tasks
+app.post('/tasks/reorder', (req, res) => {
+  const { updates } = req.body; // Array of {id, order} objects
+  
+  if (!Array.isArray(updates)) {
+    return res.status(400).send('updates must be an array');
+  }
+  
+  // Read existing tasks
+  const tasks = JSON.parse(fs.readFileSync('tasks.json', 'utf8'));
+  
+  // Update order for each task
+  updates.forEach(update => {
+    const task = tasks.find(t => t.id === update.id);
+    if (task) {
+      task.order = update.order;
+    }
+  });
+  
+  // Save updated tasks to tasks.json
+  fs.writeFileSync('tasks.json', JSON.stringify(tasks, null, 2));
+  res.sendStatus(200);
 });
 
 app.use(express.static('public'));

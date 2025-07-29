@@ -8,6 +8,13 @@ function fetchTasks() {
       return response.json();
     })
     .then(tasks => {
+      // Sort tasks by order for todo column, by id for others (backward compatible)
+      tasks.sort((a, b) => {
+        if (a.column === 'todo' && b.column === 'todo') {
+          return (a.order || 0) - (b.order || 0);
+        }
+        return a.id - b.id;
+      });
       tasks.forEach(task => addTaskToColumn(task));
     })
     .catch(error => console.error('Error loading tasks:', error));
@@ -45,29 +52,41 @@ document.getElementById('taskForm').addEventListener('submit', function(e) {
   e.preventDefault();
   const taskInput = document.getElementById('taskInput');
   const descriptionInput = document.getElementById('descriptionInput');
-  const newTask = {
-    id: Date.now(), // Unique ID for the task
-    content: taskInput.value,
-    description: descriptionInput.value,
-    column: 'todo' // Default column for new tasks
-  };
-  // Update the tasks on the server
-  fetch('/tasks', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(newTask)
-  }).then(response => {
-    if (response.ok) {
-      // Add task to the UI
-      addTaskToColumn(newTask);
-      taskInput.value = ''; // Clear the input
-      descriptionInput.value = ''; // Clear the description input
-    } else {
-      console.error('Error adding task:', response.statusText);
-    }
-  });
+  
+  // Get the current highest order for todo tasks
+  fetch('/tasks')
+    .then(response => response.json())
+    .then(tasks => {
+      const todoTasks = tasks.filter(task => task.column === 'todo');
+      const maxOrder = todoTasks.length > 0 ? Math.max(...todoTasks.map(task => task.order || 0)) : 0;
+      
+      const newTask = {
+        id: Date.now(), // Unique ID for the task
+        content: taskInput.value,
+        description: descriptionInput.value,
+        column: 'todo', // Default column for new tasks
+        order: maxOrder + 1 // Set order to be last in todo
+      };
+      
+      // Update the tasks on the server
+      fetch('/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newTask)
+      }).then(response => {
+        if (response.ok) {
+          // Add task to the UI
+          addTaskToColumn(newTask);
+          taskInput.value = ''; // Clear the input
+          descriptionInput.value = ''; // Clear the description input
+        } else {
+          console.error('Error adding task:', response.statusText);
+        }
+      });
+    })
+    .catch(error => console.error('Error fetching tasks for order calculation:', error));
 });
 
 // Function to add task to the appropriate column
@@ -133,10 +152,12 @@ function dragStart(e) {
     return;
   }
   e.dataTransfer.setData('text/plain', e.target.id);
+  e.target.classList.add('dragging');
 }
 
 function dragEnd(e) {
   e.preventDefault();
+  e.target.classList.remove('dragging');
 }
 
 function dragOver(e) {
@@ -151,26 +172,106 @@ function drop(e) {
   // Check if the drop target is a column
   const column = e.target.closest('.column');
   if (column && task) {
-    column.appendChild(task);
-    
-    // Update the task's column on the server
     const taskId = task.id.replace('task-', '');
     const newColumn = column.id;
-    updateTaskColumn(taskId, newColumn);
+    const oldColumn = task.parentElement.id;
+    
+    // If moving to a different column
+    if (oldColumn !== newColumn) {
+      column.appendChild(task);
+      
+      // If moving to todo column, assign a new order
+      if (newColumn === 'todo') {
+        // Get current todo tasks to determine new order
+        fetch('/tasks')
+          .then(response => response.json())
+          .then(tasks => {
+            const todoTasks = tasks.filter(t => t.column === 'todo');
+            const maxOrder = todoTasks.length > 0 ? Math.max(...todoTasks.map(t => t.order || 0)) : 0;
+            
+            // Update both column and order
+            fetch(`/tasks/${taskId}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ column: newColumn, order: maxOrder + 1 })
+            }).then(response => {
+              if (!response.ok) {
+                console.error('Error updating task:', response.statusText);
+              }
+            });
+          });
+      } else {
+        updateTaskColumn(taskId, newColumn);
+      }
+    } 
+    // If reordering within the todo column
+    else if (newColumn === 'todo') {
+      const dropTarget = e.target.closest('.task');
+      if (dropTarget && dropTarget !== task) {
+        // Determine if we should insert before or after the drop target
+        const rect = dropTarget.getBoundingClientRect();
+        const insertAfter = e.clientY > rect.top + rect.height / 2;
+        
+        if (insertAfter) {
+          dropTarget.parentNode.insertBefore(task, dropTarget.nextSibling);
+        } else {
+          dropTarget.parentNode.insertBefore(task, dropTarget);
+        }
+        
+        // Update order for all todo tasks
+        updateTodoTaskOrder();
+      }
+    }
   }
 }
 
 // Function to update task's column on the server
 function updateTaskColumn(taskId, newColumn) {
+  const updateData = { column: newColumn };
+  
+  // Clear order field when moving tasks out of todo column
+  if (newColumn !== 'todo') {
+    updateData.order = null;
+  }
+  
   fetch(`/tasks/${taskId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ column: newColumn })
+    body: JSON.stringify(updateData)
   }).then(response => {
     if (!response.ok) {
       console.error('Error updating task column:', response.statusText);
+    }
+  });
+}
+
+// Function to update the order of all todo tasks based on DOM order
+function updateTodoTaskOrder() {
+  const todoColumn = document.getElementById('todo');
+  const tasks = Array.from(todoColumn.querySelectorAll('.task'));
+  
+  const updates = tasks.map((task, index) => {
+    const taskId = task.id.replace('task-', '');
+    return {
+      id: parseInt(taskId),
+      order: index + 1
+    };
+  });
+  
+  // Send batch update to server
+  fetch('/tasks/reorder', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ updates })
+  }).then(response => {
+    if (!response.ok) {
+      console.error('Error updating task order:', response.statusText);
     }
   });
 }
