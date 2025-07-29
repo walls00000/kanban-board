@@ -3,8 +3,43 @@
 const fs = require('fs');
 const path = require('path');
 
+// Usage function
+function showUsage() {
+    console.log(`
+Usage: view.js [column] [jsonFile] [--output format] [--help]
+
+Arguments:
+  column      Column to filter tasks by (default: done)
+              Valid values: todo, inprogress, done
+  
+  jsonFile    Path to the JSON tasks file (default: ./tasks.json)
+
+Options:
+  --output    Output format (default: json)
+              Valid values: json, bullet
+              
+              json:   Output as JSON array
+              bullet: Output as bullet list with descriptions indented
+  
+  --help      Show this usage information
+
+Examples:
+  view.js                                    # Show done tasks as JSON
+  view.js todo                              # Show todo tasks as JSON
+  view.js done tasks.2025-07-11.json       # Show done tasks from specific file
+  view.js inprogress --output bullet        # Show in-progress tasks as bullet list
+  view.js todo tasks.json --output json     # Explicit JSON output
+`);
+}
+
 // Parse command line arguments
 const args = process.argv.slice(2);
+
+// Check for --help flag
+if (args.includes('--help') || args.includes('-h')) {
+    showUsage();
+    process.exit(0);
+}
 
 // Parse --output flag
 let outputFormat = 'json'; // default
