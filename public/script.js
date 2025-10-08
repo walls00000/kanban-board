@@ -42,6 +42,8 @@ fetch('/columns')
     });
     // Fetch tasks after columns are created
     fetchTasks();
+    // Initialize SortableJS after everything is loaded
+    initializeSortable();
   })
   .catch(error => console.error('Error loading columns:', error));
 
@@ -97,43 +99,10 @@ function addTaskToColumn(task) {
     <div class="task-content">${task.content}</div>
     <div class="task-description" contenteditable="true" data-id="${task.id}">${task.description || ''}</div>
     <div class="task-controls">
-      ${task.column !== 'todo' ? '<button class="move-task" data-id="' + task.id + '" data-to="todo">← Todo</button>' : ''}
-      ${task.column !== 'inprogress' ? '<button class="move-task" data-id="' + task.id + '" data-to="inprogress">⟷ In Progress</button>' : ''}
-      ${task.column !== 'done' ? '<button class="move-task" data-id="' + task.id + '" data-to="done">→ Done</button>' : ''}
       <button class="delete-task" data-id="${task.id}">×</button>
     </div>
   `;
   column.appendChild(taskDiv);
-  
-  // Attach move button events
-  taskDiv.querySelectorAll('.move-task').forEach(button => {
-    button.addEventListener('click', function(e) {
-      const taskId = e.target.getAttribute('data-id');
-      const targetColumn = e.target.getAttribute('data-to');
-      
-      // Move the task visually
-      const taskElement = document.getElementById(`task-${taskId}`);
-      const newColumn = document.getElementById(targetColumn);
-      newColumn.appendChild(taskElement);
-      
-      // Update the server
-      updateTaskColumn(taskId, targetColumn);
-      
-      // Refresh the task to update buttons
-      setTimeout(() => {
-        // Remove old task and re-add with correct buttons
-        taskElement.remove();
-        fetch('/tasks')
-          .then(response => response.json())
-          .then(tasks => {
-            const updatedTask = tasks.find(t => t.id == taskId);
-            if (updatedTask) {
-              addTaskToColumn(updatedTask);
-            }
-          });
-      }, 100);
-    });
-  });
   
   // Attach delete button event
   taskDiv.querySelector('.delete-task').addEventListener('click', deleteTask);
@@ -200,5 +169,50 @@ function updateTaskDescription(e) {
     if (!response.ok) {
       console.error('Error updating task description:', response.statusText);
     }
+  });
+}
+
+// Initialize SortableJS for drag and drop
+function initializeSortable() {
+  const columns = document.querySelectorAll('.column');
+  
+  columns.forEach(column => {
+    Sortable.create(column, {
+      group: 'kanban', // Allow dragging between columns
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      dragClass: 'sortable-drag',
+      
+      // Ignore certain elements (like the column header and buttons)
+      filter: 'h2, .task-controls, .task-description[contenteditable="true"]',
+      preventOnFilter: false,
+      
+      onEnd: function(evt) {
+        // Get task ID
+        const taskElement = evt.item;
+        const taskId = taskElement.id.replace('task-', '');
+        
+        // Get new column
+        const newColumnId = evt.to.id;
+        
+        // Only update if actually moved to different column
+        if (evt.from !== evt.to) {
+          // Update server
+          updateTaskColumn(taskId, newColumnId);
+        }
+      },
+      
+      // Handle cases where dragging might be restricted
+      onStart: function(evt) {
+        // Add visual feedback
+        evt.item.style.opacity = '0.8';
+      },
+      
+      onEnd: function(evt) {
+        // Restore opacity
+        evt.item.style.opacity = '';
+      }
+    });
   });
 }

@@ -62,20 +62,7 @@ h1 {
     display: flex;
     gap: 4px;
     flex-wrap: wrap;
-}
-
-.move-task {
-    background: #3498db;
-    color: white;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 11px;
-}
-
-.move-task:hover {
-    background: #2980b9;
+    justify-content: flex-end;
 }
 
 .task-content {
@@ -173,4 +160,21 @@ h1 {
 
 #taskForm button:hover {
     background: #27ae60;
+}
+
+/* SortableJS styles */
+.sortable-ghost {
+    opacity: 0.4;
+    background: #f8f9fa !important;
+    border: 2px dashed #3498db !important;
+}
+
+.sortable-chosen {
+    transform: rotate(2deg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.sortable-drag {
+    transform: rotate(5deg);
+    opacity: 0.8;
 }
