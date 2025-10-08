@@ -4,6 +4,14 @@ const app = express();
 
 app.use(express.json());
 
+// Add headers to prevent security issues
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+
 app.get('/tasks', (req, res) => {
   const tasks = JSON.parse(fs.readFileSync('tasks.json', 'utf8'));
   res.json(tasks);
@@ -102,6 +110,11 @@ app.post('/tasks/reorder', (req, res) => {
   // Save updated tasks to tasks.json
   fs.writeFileSync('tasks.json', JSON.stringify(tasks, null, 2));
   res.sendStatus(200);
+});
+
+// Debug route
+app.get('/debug', (req, res) => {
+  res.sendFile(require('path').join(__dirname, 'debug-drag.html'));
 });
 
 app.use(express.static('public'));

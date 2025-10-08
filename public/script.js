@@ -40,8 +40,6 @@ fetch('/columns')
       columnDiv.innerHTML = `<h2>${column.name}</h2>`;
       board.appendChild(columnDiv);
     });
-    // Initialize drag-and-drop
-    initializeDragAndDrop();
     // Fetch tasks after columns are created
     fetchTasks();
   })
@@ -95,17 +93,47 @@ function addTaskToColumn(task) {
   const taskDiv = document.createElement('div');
   taskDiv.id = `task-${task.id}`;
   taskDiv.classList.add('task');
-  taskDiv.draggable = true;
   taskDiv.innerHTML = `
     <div class="task-content">${task.content}</div>
     <div class="task-description" contenteditable="true" data-id="${task.id}">${task.description || ''}</div>
-    <button class="delete-task" data-id="${task.id}">×</button>
+    <div class="task-controls">
+      ${task.column !== 'todo' ? '<button class="move-task" data-id="' + task.id + '" data-to="todo">← Todo</button>' : ''}
+      ${task.column !== 'inprogress' ? '<button class="move-task" data-id="' + task.id + '" data-to="inprogress">⟷ In Progress</button>' : ''}
+      ${task.column !== 'done' ? '<button class="move-task" data-id="' + task.id + '" data-to="done">→ Done</button>' : ''}
+      <button class="delete-task" data-id="${task.id}">×</button>
+    </div>
   `;
   column.appendChild(taskDiv);
   
-  // Attach drag-and-drop events
-  taskDiv.addEventListener('dragstart', dragStart);
-  taskDiv.addEventListener('dragend', dragEnd);
+  // Attach move button events
+  taskDiv.querySelectorAll('.move-task').forEach(button => {
+    button.addEventListener('click', function(e) {
+      const taskId = e.target.getAttribute('data-id');
+      const targetColumn = e.target.getAttribute('data-to');
+      
+      // Move the task visually
+      const taskElement = document.getElementById(`task-${taskId}`);
+      const newColumn = document.getElementById(targetColumn);
+      newColumn.appendChild(taskElement);
+      
+      // Update the server
+      updateTaskColumn(taskId, targetColumn);
+      
+      // Refresh the task to update buttons
+      setTimeout(() => {
+        // Remove old task and re-add with correct buttons
+        taskElement.remove();
+        fetch('/tasks')
+          .then(response => response.json())
+          .then(tasks => {
+            const updatedTask = tasks.find(t => t.id == taskId);
+            if (updatedTask) {
+              addTaskToColumn(updatedTask);
+            }
+          });
+      }, 100);
+    });
+  });
   
   // Attach delete button event
   taskDiv.querySelector('.delete-task').addEventListener('click', deleteTask);
@@ -117,13 +145,6 @@ function addTaskToColumn(task) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       descriptionDiv.blur();
-    }
-  });
-  
-  // Prevent dragging when editing description
-  descriptionDiv.addEventListener('mousedown', function(e) {
-    if (descriptionDiv.getAttribute('contenteditable') === 'true') {
-      e.stopPropagation();
     }
   });
 }
@@ -144,97 +165,9 @@ function deleteTask(e) {
   });
 }
 
-// Drag and drop functions
-function dragStart(e) {
-  // Don't start dragging if user is editing description
-  if (e.target.closest('.task-description[contenteditable="true"]')) {
-    e.preventDefault();
-    return;
-  }
-  e.dataTransfer.setData('text/plain', e.target.id);
-  e.target.classList.add('dragging');
-}
-
-function dragEnd(e) {
-  e.preventDefault();
-  e.target.classList.remove('dragging');
-}
-
-function dragOver(e) {
-  e.preventDefault();
-}
-
-function drop(e) {
-  e.preventDefault();
-  const id = e.dataTransfer.getData('text');
-  const task = document.getElementById(id);
-  
-  // Check if the drop target is a column
-  const column = e.target.closest('.column');
-  if (column && task) {
-    const taskId = task.id.replace('task-', '');
-    const newColumn = column.id;
-    const oldColumn = task.parentElement.id;
-    
-    // If moving to a different column
-    if (oldColumn !== newColumn) {
-      column.appendChild(task);
-      
-      // If moving to todo column, assign a new order
-      if (newColumn === 'todo') {
-        // Get current todo tasks to determine new order
-        fetch('/tasks')
-          .then(response => response.json())
-          .then(tasks => {
-            const todoTasks = tasks.filter(t => t.column === 'todo');
-            const maxOrder = todoTasks.length > 0 ? Math.max(...todoTasks.map(t => t.order || 0)) : 0;
-            
-            // Update both column and order
-            fetch(`/tasks/${taskId}`, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ column: newColumn, order: maxOrder + 1 })
-            }).then(response => {
-              if (!response.ok) {
-                console.error('Error updating task:', response.statusText);
-              }
-            });
-          });
-      } else {
-        updateTaskColumn(taskId, newColumn);
-      }
-    } 
-    // If reordering within the todo column
-    else if (newColumn === 'todo') {
-      const dropTarget = e.target.closest('.task');
-      if (dropTarget && dropTarget !== task) {
-        // Determine if we should insert before or after the drop target
-        const rect = dropTarget.getBoundingClientRect();
-        const insertAfter = e.clientY > rect.top + rect.height / 2;
-        
-        if (insertAfter) {
-          dropTarget.parentNode.insertBefore(task, dropTarget.nextSibling);
-        } else {
-          dropTarget.parentNode.insertBefore(task, dropTarget);
-        }
-        
-        // Update order for all todo tasks
-        updateTodoTaskOrder();
-      }
-    }
-  }
-}
-
 // Function to update task's column on the server
 function updateTaskColumn(taskId, newColumn) {
   const updateData = { column: newColumn };
-  
-  // Clear order field when moving tasks out of todo column
-  if (newColumn !== 'todo') {
-    updateData.order = null;
-  }
   
   fetch(`/tasks/${taskId}`, {
     method: 'PATCH',
@@ -246,33 +179,8 @@ function updateTaskColumn(taskId, newColumn) {
     if (!response.ok) {
       console.error('Error updating task column:', response.statusText);
     }
-  });
-}
-
-// Function to update the order of all todo tasks based on DOM order
-function updateTodoTaskOrder() {
-  const todoColumn = document.getElementById('todo');
-  const tasks = Array.from(todoColumn.querySelectorAll('.task'));
-  
-  const updates = tasks.map((task, index) => {
-    const taskId = task.id.replace('task-', '');
-    return {
-      id: parseInt(taskId),
-      order: index + 1
-    };
-  });
-  
-  // Send batch update to server
-  fetch('/tasks/reorder', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ updates })
-  }).then(response => {
-    if (!response.ok) {
-      console.error('Error updating task order:', response.statusText);
-    }
+  }).catch(error => {
+    console.error('Network error updating task:', error);
   });
 }
 
@@ -292,14 +200,5 @@ function updateTaskDescription(e) {
     if (!response.ok) {
       console.error('Error updating task description:', response.statusText);
     }
-  });
-}
-
-// Initialize drag-and-drop
-function initializeDragAndDrop() {
-  const columns = document.querySelectorAll('.column');
-  columns.forEach(column => {
-    column.addEventListener('dragover', dragOver);
-    column.addEventListener('drop', drop);
   });
 }

@@ -41,7 +41,6 @@ h1 {
     margin: 10px 0;
     padding: 12px;
     background: #ecf0f1;
-    cursor: move;
     border: 1px solid #bdc3c7;
     border-radius: 6px;
     transition: all 0.3s ease;
@@ -56,6 +55,27 @@ h1 {
 .task.dragging {
     opacity: 0.5;
     transform: rotate(2deg);
+}
+
+.task-controls {
+    margin-top: 8px;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.move-task {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.move-task:hover {
+    background: #2980b9;
 }
 
 .task-content {
