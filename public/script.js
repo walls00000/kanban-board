@@ -8,6 +8,13 @@ function fetchTasks() {
       return response.json();
     })
     .then(tasks => {
+      // Sort tasks by order for todo column, by id for others (backward compatible)
+      tasks.sort((a, b) => {
+        if (a.column === 'todo' && b.column === 'todo') {
+          return (a.order || 0) - (b.order || 0);
+        }
+        return a.id - b.id;
+      });
       tasks.forEach(task => addTaskToColumn(task));
     })
     .catch(error => console.error('Error loading tasks:', error));
@@ -33,10 +40,10 @@ fetch('/columns')
       columnDiv.innerHTML = `<h2>${column.name}</h2>`;
       board.appendChild(columnDiv);
     });
-    // Initialize drag-and-drop
-    initializeDragAndDrop();
     // Fetch tasks after columns are created
     fetchTasks();
+    // Initialize SortableJS after everything is loaded
+    initializeSortable();
   })
   .catch(error => console.error('Error loading columns:', error));
 
@@ -45,29 +52,41 @@ document.getElementById('taskForm').addEventListener('submit', function(e) {
   e.preventDefault();
   const taskInput = document.getElementById('taskInput');
   const descriptionInput = document.getElementById('descriptionInput');
-  const newTask = {
-    id: Date.now(), // Unique ID for the task
-    content: taskInput.value,
-    description: descriptionInput.value,
-    column: 'todo' // Default column for new tasks
-  };
-  // Update the tasks on the server
-  fetch('/tasks', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(newTask)
-  }).then(response => {
-    if (response.ok) {
-      // Add task to the UI
-      addTaskToColumn(newTask);
-      taskInput.value = ''; // Clear the input
-      descriptionInput.value = ''; // Clear the description input
-    } else {
-      console.error('Error adding task:', response.statusText);
-    }
-  });
+  
+  // Get the current highest order for todo tasks
+  fetch('/tasks')
+    .then(response => response.json())
+    .then(tasks => {
+      const todoTasks = tasks.filter(task => task.column === 'todo');
+      const maxOrder = todoTasks.length > 0 ? Math.max(...todoTasks.map(task => task.order || 0)) : 0;
+      
+      const newTask = {
+        id: Date.now(), // Unique ID for the task
+        content: taskInput.value,
+        description: descriptionInput.value,
+        column: 'todo', // Default column for new tasks
+        order: maxOrder + 1 // Set order to be last in todo
+      };
+      
+      // Update the tasks on the server
+      fetch('/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newTask)
+      }).then(response => {
+        if (response.ok) {
+          // Add task to the UI
+          addTaskToColumn(newTask);
+          taskInput.value = ''; // Clear the input
+          descriptionInput.value = ''; // Clear the description input
+        } else {
+          console.error('Error adding task:', response.statusText);
+        }
+      });
+    })
+    .catch(error => console.error('Error fetching tasks for order calculation:', error));
 });
 
 // Function to add task to the appropriate column
@@ -76,17 +95,14 @@ function addTaskToColumn(task) {
   const taskDiv = document.createElement('div');
   taskDiv.id = `task-${task.id}`;
   taskDiv.classList.add('task');
-  taskDiv.draggable = true;
   taskDiv.innerHTML = `
     <div class="task-content">${task.content}</div>
     <div class="task-description" contenteditable="true" data-id="${task.id}">${task.description || ''}</div>
-    <button class="delete-task" data-id="${task.id}">×</button>
+    <div class="task-controls">
+      <button class="delete-task" data-id="${task.id}">×</button>
+    </div>
   `;
   column.appendChild(taskDiv);
-  
-  // Attach drag-and-drop events
-  taskDiv.addEventListener('dragstart', dragStart);
-  taskDiv.addEventListener('dragend', dragEnd);
   
   // Attach delete button event
   taskDiv.querySelector('.delete-task').addEventListener('click', deleteTask);
@@ -98,13 +114,6 @@ function addTaskToColumn(task) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       descriptionDiv.blur();
-    }
-  });
-  
-  // Prevent dragging when editing description
-  descriptionDiv.addEventListener('mousedown', function(e) {
-    if (descriptionDiv.getAttribute('contenteditable') === 'true') {
-      e.stopPropagation();
     }
   });
 }
@@ -125,53 +134,22 @@ function deleteTask(e) {
   });
 }
 
-// Drag and drop functions
-function dragStart(e) {
-  // Don't start dragging if user is editing description
-  if (e.target.closest('.task-description[contenteditable="true"]')) {
-    e.preventDefault();
-    return;
-  }
-  e.dataTransfer.setData('text/plain', e.target.id);
-}
-
-function dragEnd(e) {
-  e.preventDefault();
-}
-
-function dragOver(e) {
-  e.preventDefault();
-}
-
-function drop(e) {
-  e.preventDefault();
-  const id = e.dataTransfer.getData('text');
-  const task = document.getElementById(id);
-  
-  // Check if the drop target is a column
-  const column = e.target.closest('.column');
-  if (column && task) {
-    column.appendChild(task);
-    
-    // Update the task's column on the server
-    const taskId = task.id.replace('task-', '');
-    const newColumn = column.id;
-    updateTaskColumn(taskId, newColumn);
-  }
-}
-
 // Function to update task's column on the server
 function updateTaskColumn(taskId, newColumn) {
+  const updateData = { column: newColumn };
+  
   fetch(`/tasks/${taskId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ column: newColumn })
+    body: JSON.stringify(updateData)
   }).then(response => {
     if (!response.ok) {
       console.error('Error updating task column:', response.statusText);
     }
+  }).catch(error => {
+    console.error('Network error updating task:', error);
   });
 }
 
@@ -194,11 +172,47 @@ function updateTaskDescription(e) {
   });
 }
 
-// Initialize drag-and-drop
-function initializeDragAndDrop() {
+// Initialize SortableJS for drag and drop
+function initializeSortable() {
   const columns = document.querySelectorAll('.column');
+  
   columns.forEach(column => {
-    column.addEventListener('dragover', dragOver);
-    column.addEventListener('drop', drop);
+    Sortable.create(column, {
+      group: 'kanban', // Allow dragging between columns
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      dragClass: 'sortable-drag',
+      
+      // Ignore certain elements (like the column header and buttons)
+      filter: 'h2, .task-controls, .task-description[contenteditable="true"]',
+      preventOnFilter: false,
+      
+      onEnd: function(evt) {
+        // Get task ID
+        const taskElement = evt.item;
+        const taskId = taskElement.id.replace('task-', '');
+        
+        // Get new column
+        const newColumnId = evt.to.id;
+        
+        // Only update if actually moved to different column
+        if (evt.from !== evt.to) {
+          // Update server
+          updateTaskColumn(taskId, newColumnId);
+        }
+      },
+      
+      // Handle cases where dragging might be restricted
+      onStart: function(evt) {
+        // Add visual feedback
+        evt.item.style.opacity = '0.8';
+      },
+      
+      onEnd: function(evt) {
+        // Restore opacity
+        evt.item.style.opacity = '';
+      }
+    });
   });
 }
