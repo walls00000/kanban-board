@@ -45,6 +45,24 @@ h1 {
     border-radius: 6px;
     transition: all 0.3s ease;
     position: relative;
+    pointer-events: auto;
+    display: block;
+    box-sizing: border-box;
+    isolation: isolate; /* Prevent content from merging */
+}
+
+.task-content, .task-description, .task-controls {
+    pointer-events: none; /* Prevent drops on child elements */
+    position: relative;
+    z-index: 1;
+}
+
+.task-description[contenteditable="true"]:focus {
+    pointer-events: auto; /* Re-enable for editing */
+}
+
+.delete-task {
+    pointer-events: auto; /* Re-enable for button clicking */
 }
 
 .task:hover {

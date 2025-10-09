@@ -8,11 +8,19 @@ function fetchTasks() {
       return response.json();
     })
     .then(tasks => {
-      // Sort tasks by order for todo column, by id for others (backward compatible)
+      // Sort tasks by order for all columns, with fallback to id
       tasks.sort((a, b) => {
-        if (a.column === 'todo' && b.column === 'todo') {
-          return (a.order || 0) - (b.order || 0);
+        // First sort by column to group them
+        if (a.column !== b.column) {
+          const columnOrder = { 'todo': 1, 'inprogress': 2, 'done': 3 };
+          return (columnOrder[a.column] || 999) - (columnOrder[b.column] || 999);
         }
+        // Within the same column, sort by order if available, otherwise by id
+        if (a.order !== undefined && b.order !== undefined) {
+          return a.order - b.order;
+        }
+        if (a.order !== undefined) return -1;
+        if (b.order !== undefined) return 1;
         return a.id - b.id;
       });
       tasks.forEach(task => addTaskToColumn(task));
@@ -44,6 +52,8 @@ fetch('/columns')
     fetchTasks();
     // Initialize SortableJS after everything is loaded
     initializeSortable();
+    // Ensure proper task positioning
+    setTimeout(ensureProperTaskPositioning, 100);
   })
   .catch(error => console.error('Error loading columns:', error));
 
@@ -136,20 +146,62 @@ function deleteTask(e) {
 
 // Function to update task's column on the server
 function updateTaskColumn(taskId, newColumn) {
-  const updateData = { column: newColumn };
+  // First get current tasks to determine the new order
+  fetch('/tasks')
+    .then(response => response.json())
+    .then(tasks => {
+      const tasksInNewColumn = tasks.filter(task => task.column === newColumn);
+      const maxOrder = tasksInNewColumn.length > 0 ? Math.max(...tasksInNewColumn.map(task => task.order || 0)) : 0;
+      
+      const updateData = { 
+        column: newColumn,
+        order: maxOrder + 1 // Always assign an order when moving to any column
+      };
+      
+      return fetch(`/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+    })
+    .then(response => {
+      if (!response.ok) {
+        console.error('Error updating task column:', response.statusText);
+      }
+    })
+    .catch(error => {
+      console.error('Network error updating task:', error);
+    });
+}
+
+// Function to update task order within a column
+function updateTaskOrder(columnId) {
+  const column = document.getElementById(columnId);
+  const tasks = Array.from(column.querySelectorAll('.task'));
   
-  fetch(`/tasks/${taskId}`, {
-    method: 'PATCH',
+  const updates = tasks.map((task, index) => {
+    const taskId = parseInt(task.id.replace('task-', ''));
+    return {
+      id: taskId,
+      order: index + 1
+    };
+  });
+  
+  // Send batch update to server
+  fetch('/tasks/reorder', {
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(updateData)
+    body: JSON.stringify({ updates })
   }).then(response => {
     if (!response.ok) {
-      console.error('Error updating task column:', response.statusText);
+      console.error('Error updating task order:', response.statusText);
     }
   }).catch(error => {
-    console.error('Network error updating task:', error);
+    console.error('Network error updating task order:', error);
   });
 }
 
@@ -172,6 +224,34 @@ function updateTaskDescription(e) {
   });
 }
 
+// Function to ensure tasks are properly positioned (not nested inside other tasks)
+function ensureProperTaskPositioning() {
+  const allTasks = document.querySelectorAll('.task');
+  allTasks.forEach(task => {
+    // Check if this task is nested inside another task or inside task elements
+    const parentTask = task.closest('.task:not(#' + task.id + ')');
+    const parentTaskElement = task.closest('.task-description, .task-content, .task-controls');
+    
+    if (parentTask || parentTaskElement) {
+      // This task is nested - find the correct column and move it there
+      const column = (parentTask || parentTaskElement).closest('.column');
+      if (column) {
+        column.appendChild(task);
+        console.warn('Fixed nested task:', task.id, 'moved to column:', column.id);
+      }
+    }
+    
+    // Also check if the task's direct parent is not a column
+    if (task.parentElement && !task.parentElement.classList.contains('column')) {
+      const column = task.closest('.column');
+      if (column) {
+        column.appendChild(task);
+        console.warn('Fixed incorrectly nested task:', task.id);
+      }
+    }
+  });
+}
+
 // Initialize SortableJS for drag and drop
 function initializeSortable() {
   const columns = document.querySelectorAll('.column');
@@ -184,23 +264,26 @@ function initializeSortable() {
       chosenClass: 'sortable-chosen',
       dragClass: 'sortable-drag',
       
-      // Ignore certain elements (like the column header and buttons)
-      filter: 'h2, .task-controls, .task-description[contenteditable="true"]',
+      // Only drag tasks, and only allow drops on columns
+      draggable: '.task',
+      
+      // Prevent dropping inside task elements
+      filter: 'h2, .task-description, .task-content, .task-controls, .delete-task',
       preventOnFilter: false,
       
-      onEnd: function(evt) {
-        // Get task ID
-        const taskElement = evt.item;
-        const taskId = taskElement.id.replace('task-', '');
-        
-        // Get new column
-        const newColumnId = evt.to.id;
-        
-        // Only update if actually moved to different column
-        if (evt.from !== evt.to) {
-          // Update server
-          updateTaskColumn(taskId, newColumnId);
+      // Force drops to be at the column level only
+      fallbackOnBody: true,
+      swapThreshold: 0.65,
+      
+      // Prevent nested drops completely
+      onMove: function(evt) {
+        // Don't allow dropping inside task elements
+        if (evt.related.closest('.task-description') || 
+            evt.related.closest('.task-content') || 
+            evt.related.closest('.task-controls')) {
+          return false;
         }
+        return true;
       },
       
       // Handle cases where dragging might be restricted
@@ -212,6 +295,36 @@ function initializeSortable() {
       onEnd: function(evt) {
         // Restore opacity
         evt.item.style.opacity = '';
+        
+        // Get task element and ensure it's at column level
+        const taskElement = evt.item;
+        const targetColumn = evt.to;
+        
+        // Force the task to be a direct child of the column
+        if (taskElement.parentElement !== targetColumn) {
+          targetColumn.appendChild(taskElement);
+        }
+        
+        // Ensure no tasks are nested inside other tasks
+        ensureProperTaskPositioning();
+        
+        // Get task ID
+        const taskId = taskElement.id.replace('task-', '');
+        
+        // Get new column
+        const newColumnId = targetColumn.id;
+        const oldColumnId = evt.from.id;
+        
+        // Update server - always call this to handle both column changes and reordering
+        if (oldColumnId !== newColumnId) {
+          // Moving to different column - this will assign a new order automatically
+          updateTaskColumn(taskId, newColumnId);
+          // Also update the order of remaining tasks in the source column
+          setTimeout(() => updateTaskOrder(oldColumnId), 100);
+        } else {
+          // Reordering within same column - update the order
+          updateTaskOrder(newColumnId);
+        }
       }
     });
   });
