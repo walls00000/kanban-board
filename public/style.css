@@ -77,6 +77,10 @@ h1 {
     cursor: pointer;
     font-size: 11px;
     transition: background 0.3s ease;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10; /* Ensure it's above other content */
 }
 
 .task:hover {

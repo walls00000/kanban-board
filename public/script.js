@@ -106,10 +106,11 @@ function addTaskToColumn(task) {
   taskDiv.id = `task-${task.id}`;
   taskDiv.classList.add('task');
   taskDiv.innerHTML = `
+    <button class="delete-task" data-id="${task.id}">×</button>
     <div class="task-content">${task.content}</div>
     <div class="task-description" contenteditable="true" data-id="${task.id}">${task.description || ''}</div>
     <div class="task-controls">
-      <button class="delete-task" data-id="${task.id}">×</button>
+      <!-- Future controls can go here -->
     </div>
   `;
   column.appendChild(taskDiv);
