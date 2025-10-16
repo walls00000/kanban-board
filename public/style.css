@@ -51,8 +51,14 @@ h1 {
     isolation: isolate; /* Prevent content from merging */
 }
 
-.task-content, .task-description, .task-controls {
+.task-content, .task-controls {
     pointer-events: none; /* Prevent drops on child elements */
+    position: relative;
+    z-index: 1;
+}
+
+.task-description {
+    pointer-events: auto; /* Always allow clicking on descriptions for editing */
     position: relative;
     z-index: 1;
 }
@@ -63,6 +69,18 @@ h1 {
 
 .delete-task {
     pointer-events: auto; /* Re-enable for button clicking */
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: background 0.3s ease;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10; /* Ensure it's above other content */
 }
 
 .task:hover {
@@ -116,20 +134,6 @@ h1 {
     content: "Enter description...";
     color: #bdc3c7;
     font-style: italic;
-}
-
-.delete-task {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: #e74c3c;
-    color: white;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: background 0.3s ease;
 }
 
 .delete-task:hover {
