@@ -130,5 +130,10 @@ dist
 .pnp.*
 
 tasks*json
+*json.bak
 logs/*
 .vscode/*
+
+# Ignore output files
+done.txt
+inprogress.txt

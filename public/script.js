@@ -1,3 +1,13 @@
+// Fetch and set the board title
+fetch('/config')
+  .then(response => response.json())
+  .then(config => {
+    const title = config.title || 'Kanban Board';
+    document.getElementById('boardTitle').textContent = title;
+    document.getElementById('pageTitle').textContent = title;
+  })
+  .catch(error => console.error('Error loading config:', error));
+
 // Fetch tasks from the server
 function fetchTasks() {
   fetch('/tasks')
