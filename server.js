@@ -22,6 +22,11 @@ app.get('/columns', (req, res) => {
   res.json(columns);
 });
 
+app.get('/config', (req, res) => {
+  const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+  res.json(config);
+});
+
 // Handle POST request for adding new tasks
 app.post('/tasks', (req, res) => {
   const newTask = req.body;
@@ -67,6 +72,7 @@ app.patch('/tasks/:id', (req, res) => {
       task.column = updates.column;
     }
     if (updates.description !== undefined) {
+      console.log('Received description:', JSON.stringify(updates.description));
       task.description = updates.description;
     }
     if (updates.content !== undefined) {
