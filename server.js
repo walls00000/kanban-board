@@ -72,6 +72,7 @@ app.patch('/tasks/:id', (req, res) => {
       task.column = updates.column;
     }
     if (updates.description !== undefined) {
+      console.log('Received description:', JSON.stringify(updates.description));
       task.description = updates.description;
     }
     if (updates.content !== undefined) {

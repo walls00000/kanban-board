@@ -118,25 +118,23 @@ function addTaskToColumn(task) {
   taskDiv.innerHTML = `
     <button class="delete-task" data-id="${task.id}">×</button>
     <div class="task-content">${task.content}</div>
-    <div class="task-description" contenteditable="true" data-id="${task.id}">${task.description || ''}</div>
+    <div class="task-description" contenteditable="true" data-id="${task.id}"></div>
     <div class="task-controls">
       <!-- Future controls can go here -->
     </div>
   `;
+  
+  // Set description using textContent to preserve newlines
+  const descriptionDiv = taskDiv.querySelector('.task-description');
+  descriptionDiv.textContent = task.description || '';
+  
   column.appendChild(taskDiv);
   
   // Attach delete button event
   taskDiv.querySelector('.delete-task').addEventListener('click', deleteTask);
   
   // Attach description edit events
-  const descriptionDiv = taskDiv.querySelector('.task-description');
   descriptionDiv.addEventListener('blur', updateTaskDescription);
-  descriptionDiv.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      descriptionDiv.blur();
-    }
-  });
 }
 
 // Function to delete task
@@ -219,7 +217,20 @@ function updateTaskOrder(columnId) {
 // Function to update task description
 function updateTaskDescription(e) {
   const taskId = e.target.getAttribute('data-id');
-  const newDescription = e.target.textContent.trim();
+  
+  // Convert HTML to text with preserved newlines
+  // contenteditable creates <div> or <br> for newlines, we need to convert them
+  let newDescription = e.target.innerHTML
+    .replace(/<div>/gi, '\n')
+    .replace(/<\/div>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '') // Remove any other HTML tags
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+  
+  console.log('Saving description:', JSON.stringify(newDescription));
   
   // Update the task's description on the server
   fetch(`/tasks/${taskId}`, {
