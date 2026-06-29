@@ -1,3 +1,8 @@
+// Frontend for the Kanban board. On load, fetches config/columns/tasks from the server and
+// dynamically builds the UI. Handles task creation, deletion, inline description editing,
+// and drag-and-drop reordering/column changes via SortableJS — persisting all changes to
+// the server via REST calls.
+
 // Fetch and set the board title
 fetch('/config')
   .then(response => response.json())
@@ -22,7 +27,7 @@ function fetchTasks() {
       tasks.sort((a, b) => {
         // First sort by column to group them
         if (a.column !== b.column) {
-          const columnOrder = { 'todo': 1, 'inprogress': 2, 'done': 3 };
+          const columnOrder = { 'backburner': 1, 'todo': 2, 'inprogress': 3, 'done': 4 };
           return (columnOrder[a.column] || 999) - (columnOrder[b.column] || 999);
         }
         // Within the same column, sort by order if available, otherwise by id
