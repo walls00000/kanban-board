@@ -89,6 +89,7 @@ document.getElementById('taskForm').addEventListener('submit', function(e) {
         id: Date.now(), // Unique ID for the task
         content: taskInput.value,
         description: descriptionInput.value,
+        size: 'M',
         column: 'todo', // Default column for new tasks
         order: maxOrder + 1 // Set order to be last in todo
       };
@@ -123,23 +124,38 @@ function addTaskToColumn(task) {
   taskDiv.innerHTML = `
     <button class="delete-task" data-id="${task.id}">×</button>
     <div class="task-content">${task.content}</div>
-    <div class="task-description" contenteditable="true" data-id="${task.id}"></div>
-    <div class="task-controls">
-      <!-- Future controls can go here -->
+    <div class="task-size">
+      <label>size</label>
+      <select class="size-select" data-id="${task.id}">
+        <option value="XS">XS</option>
+        <option value="S">S</option>
+        <option value="M">M</option>
+        <option value="L">L</option>
+        <option value="XL">XL</option>
+      </select>
     </div>
+    <div class="task-description" contenteditable="true" data-id="${task.id}"></div>
+    <div class="task-controls"></div>
   `;
-  
+
   // Set description using textContent to preserve newlines
   const descriptionDiv = taskDiv.querySelector('.task-description');
   descriptionDiv.textContent = task.description || '';
-  
+
+  // Set size dropdown value
+  const sizeSelect = taskDiv.querySelector('.size-select');
+  sizeSelect.value = task.size || 'M';
+
   column.appendChild(taskDiv);
-  
+
   // Attach delete button event
   taskDiv.querySelector('.delete-task').addEventListener('click', deleteTask);
-  
+
   // Attach description edit events
   descriptionDiv.addEventListener('blur', updateTaskDescription);
+
+  // Attach size change event
+  sizeSelect.addEventListener('change', updateTaskSize);
 }
 
 // Function to delete task
@@ -251,6 +267,22 @@ function updateTaskDescription(e) {
   });
 }
 
+// Function to update task size
+function updateTaskSize(e) {
+  const taskId = e.target.getAttribute('data-id');
+  const newSize = e.target.value;
+
+  fetch(`/tasks/${taskId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ size: newSize })
+  }).then(response => {
+    if (!response.ok) {
+      console.error('Error updating task size:', response.statusText);
+    }
+  });
+}
+
 // Function to ensure tasks are properly positioned (not nested inside other tasks)
 function ensureProperTaskPositioning() {
   const allTasks = document.querySelectorAll('.task');
@@ -295,7 +327,7 @@ function initializeSortable() {
       draggable: '.task',
       
       // Prevent dropping inside task elements
-      filter: 'h2, .task-description, .task-content, .task-controls, .delete-task',
+      filter: 'h2, .task-description, .task-content, .task-controls, .task-size, .delete-task',
       preventOnFilter: false,
       
       // Force drops to be at the column level only
@@ -305,9 +337,10 @@ function initializeSortable() {
       // Prevent nested drops completely
       onMove: function(evt) {
         // Don't allow dropping inside task elements
-        if (evt.related.closest('.task-description') || 
-            evt.related.closest('.task-content') || 
-            evt.related.closest('.task-controls')) {
+        if (evt.related.closest('.task-description') ||
+            evt.related.closest('.task-content') ||
+            evt.related.closest('.task-controls') ||
+            evt.related.closest('.task-size')) {
           return false;
         }
         return true;

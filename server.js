@@ -75,6 +75,9 @@ app.patch('/tasks/:id', (req, res) => {
       console.log('Received description:', JSON.stringify(updates.description));
       task.description = updates.description;
     }
+    if (updates.size !== undefined) {
+      task.size = updates.size;
+    }
     if (updates.content !== undefined) {
       task.content = updates.content;
     }
