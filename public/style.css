@@ -51,7 +51,7 @@ h1 {
     isolation: isolate; /* Prevent content from merging */
 }
 
-.task-content, .task-controls {
+.task-content, .task-controls, .task-size {
     pointer-events: none; /* Prevent drops on child elements */
     position: relative;
     z-index: 1;
@@ -61,6 +61,31 @@ h1 {
     pointer-events: auto; /* Always allow clicking on descriptions for editing */
     position: relative;
     z-index: 1;
+}
+
+.task-size {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 0.8em;
+    color: #7f8c8d;
+}
+
+.task-size label {
+    font-weight: 500;
+}
+
+.size-select {
+    pointer-events: auto;
+    font-size: 0.85em;
+    font-family: inherit;
+    border: 1px solid #bdc3c7;
+    border-radius: 3px;
+    padding: 1px 4px;
+    background: #fff;
+    color: #2c3e50;
+    cursor: pointer;
 }
 
 .task-description[contenteditable="true"]:focus {
