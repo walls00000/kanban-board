@@ -74,6 +74,10 @@ Each task in `tasks.json`:
 }
 ```
 
-## No Tests
+## Tests
 
-There is no test suite. Verify changes by running the app and testing in the browser.
+`npm test` runs `node:test` suites in `test/` (currently the pure column-width helpers in `public/column-widths.js`). UI behavior has no automated tests; verify it by running the app and testing in the browser.
+
+## Column Widths
+
+Columns share space equally by default. Drag the handle on a column's right edge to resize it (double-click to reset). Widths are saved per column in browser `localStorage`.

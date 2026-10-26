@@ -14,13 +14,19 @@ h1 {
 
 .board {
     display: flex;
-    justify-content: space-around;
+    align-items: flex-start;
     padding: 20px;
     gap: 20px;
+    overflow-x: auto;
 }
 
+/* Columns share space equally by default (flex-basis 0 ignores content size, so a column
+   with many tickets can't squeeze the others). Dragging a resize handle pins a px width. */
 .column {
-    width: 30%;
+    position: relative;
+    flex: 1 1 0;
+    min-width: 200px;
+    box-sizing: border-box;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     padding: 15px;
@@ -35,6 +41,28 @@ h1 {
     border-bottom: 2px solid #3498db;
     padding-bottom: 10px;
     margin-top: 0;
+}
+
+.column-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -12px;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    border-radius: 4px;
+    z-index: 20;
+}
+
+.column-resize-handle:hover,
+.column-resize-handle.active {
+    background: #3498db;
+    opacity: 0.5;
+}
+
+body.resizing-column {
+    cursor: col-resize;
+    user-select: none;
 }
 
 .task {

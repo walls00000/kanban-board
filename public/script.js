@@ -55,12 +55,17 @@ fetch('/columns')
     const board = document.querySelector('.board');
     // Clear the board first, just in case
     board.innerHTML = '';
+    const savedWidths = loadColumnWidths()
     // Dynamically create columns from the JSON
     data.columns.forEach(column => {
       const columnDiv = document.createElement('div');
       columnDiv.classList.add('column');
       columnDiv.id = column.id;
       columnDiv.innerHTML = `<h2>${column.name}</h2>`;
+      if (savedWidths[column.id]) {
+        setColumnWidth(columnDiv, savedWidths[column.id])
+      }
+      columnDiv.appendChild(createResizeHandle(columnDiv))
       board.appendChild(columnDiv);
     });
     // Fetch tasks after columns are created
@@ -71,6 +76,76 @@ fetch('/columns')
     setTimeout(ensureProperTaskPositioning, 100);
   })
   .catch(error => console.error('Error loading columns:', error));
+
+// Column widths: equal by default, user-adjustable by dragging the handle on a column's right
+// edge (double-click the handle to reset). Widths persist per column in localStorage.
+// Pure helpers (clampWidth, parseSavedWidths, ...) live in column-widths.js.
+/** @returns {Object<string, number>} saved column id -> px width */
+function loadColumnWidths() {
+  try {
+    return parseSavedWidths(localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY))
+  } catch (e) {
+    return {}
+  }
+}
+
+/** @returns {void} */
+function saveColumnWidth(columnId, width) {
+  try {
+    const widths = loadColumnWidths()
+    if (width === null) {
+      delete widths[columnId]
+    } else {
+      widths[columnId] = width
+    }
+    localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, serializeWidths(widths))
+  } catch (e) {
+    console.error('Error saving column width:', e)
+  }
+}
+
+// Pin a column to a fixed px width, or pass null to return it to the equal-share default
+/** @returns {void} */
+function setColumnWidth(columnDiv, width) {
+  columnDiv.style.flex = width === null ? '' : `0 0 ${width}px`
+}
+
+/** @returns {HTMLDivElement} the drag handle to append to the column */
+function createResizeHandle(columnDiv) {
+  const handle = document.createElement('div')
+  handle.classList.add('column-resize-handle')
+  handle.title = 'Drag to resize column (double-click to reset)'
+
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = columnDiv.getBoundingClientRect().width
+    let width = startWidth
+    handle.classList.add('active')
+    document.body.classList.add('resizing-column')
+
+    const onMouseMove = moveEvent => {
+      width = clampWidth(startWidth + moveEvent.clientX - startX)
+      setColumnWidth(columnDiv, width)
+    }
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      handle.classList.remove('active')
+      document.body.classList.remove('resizing-column')
+      saveColumnWidth(columnDiv.id, width)
+    }
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  })
+
+  handle.addEventListener('dblclick', () => {
+    setColumnWidth(columnDiv, null)
+    saveColumnWidth(columnDiv.id, null)
+  })
+
+  return handle
+}
 
 // Handle task addition
 document.getElementById('taskForm').addEventListener('submit', function(e) {
